@@ -1,0 +1,598 @@
+# Implementation Plan: Wardrobe Manager
+
+## Overview
+
+Build a React + TypeScript wardrobe management app with Firebase backend. The implementation follows a bottom-up approach: core types and utilities first, then services, then UI components, wired together with routing and state management.
+
+## Tasks
+
+- [ ] 1. Project setup and core types
+  - [ ] 1.1 Initialize React + TypeScript project with Vite, install dependencies (React Router, Tailwind CSS, Firebase, Vitest, fast-check, React Testing Library)
+    - Configure Vite, Tailwind, and Vitest
+    - _Requirements: 11.3_
+  - [ ] 1.2 Create core type definitions
+    - Define all TypeScript interfaces: FieldType, FieldDefinition, Category, Subcategory, MeasurementValue, FieldValue, Item, WishlistItem, PresetItem, PersonMeasurement, PersonProfile, MeasurementComparison, FitComparisonResult
+    - _Requirements: 2.1, 12.1_
+  - [ ] 1.3 Create default category/subcategory/field seed data
+    - Define the default categories (Tops, Bottoms, Dresses, Footwear, Accessories, Underwear, Sportswear) with their subcategories and default fields as specified in the design
+    - Include global default fields (Name, Colors, Material, Brand, Size Label, Condition, Fit Type, Fit Confidence, Material Stretch, Purchase Date, Price, Description, Notes)
+    - _Requirements: 2.1_
+
+- [ ] 2. Serialization and unit conversion utilities
+  - [ ] 2.1 Implement ItemSerializer (serialize/deserialize Item objects to/from Firestore-compatible documents)
+    - Handle all FieldValue types: strings, numbers, booleans, string arrays, MeasurementValue, dates, null
+    - Dates stored as ISO 8601 strings, MeasurementValue as JSON objects
+    - _Requirements: 12.1, 12.2, 12.3_
+  - [ ]* 2.2 Write property test for serialization round-trip
+    - **Property 9: Item serialization round-trip**
+    - **Validates: Requirements 12.1, 12.2, 12.3**
+  - [ ] 2.3 Implement measurement unit conversion (cm ↔ inches)
+    - Conversion factors: inches→cm × 2.54, cm→inches × 0.3937
+    - _Requirements: (fit comparison support)_
+  - [ ]* 2.4 Write property test for unit conversion round-trip
+    - **Property 11: Measurement unit conversion round-trip**
+    - **Validates: Requirements (unit conversion correctness)**
+
+- [ ] 3. Checkpoint - Core utilities
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Form validation and field logic
+  - [ ] 4.1 Implement form validation function
+    - Validate required fields are present and non-empty
+    - Validate measurement values (min ≤ max for ranges, positive values)
+    - Validate field value types match their FieldDefinition types
+    - _Requirements: 2.3, 6.3_
+  - [ ]* 4.2 Write property test for form validation
+    - **Property 3: Form validation rejects missing required fields**
+    - **Validates: Requirements 2.3, 6.3**
+  - [ ]* 4.3 Write property test for field value type consistency
+    - **Property 12: Field value type consistency**
+    - **Validates: Requirements 2.2, 9.2**
+  - [ ] 4.4 Implement dynamic field list resolver
+    - Given a categoryId and optional subcategoryId, return the merged list of global fields + category fields + subcategory fields in display order
+    - _Requirements: 2.1_
+  - [ ]* 4.5 Write property test for dynamic form field resolution
+    - **Property 2: Dynamic form renders correct fields from configuration**
+    - **Validates: Requirements 2.1**
+
+- [ ] 5. Fit comparison logic
+  - [ ] 5.1 Implement FitComparator service
+    - compareToPersonMeasurements: match measurement fields by label, normalize units, compute deltas
+    - compareToItem: match measurement fields by field definition ID, normalize units, compute deltas
+    - findSimilarItems: filter items by same categoryId (and optionally subcategoryId)
+    - Range comparison logic: single-vs-single, single-vs-range, range-vs-range
+    - Overall fit aggregation: good_fit, too_small, too_large, mixed
+    - _Requirements: (Fit_Comparison glossary, design)_
+  - [ ]* 5.2 Write property test for fit comparison
+    - **Property 10: Fit comparison symmetry and correctness**
+    - **Validates: Requirements (fit comparison logic)**
+
+- [ ] 6. Checkpoint - Business logic
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Firebase services
+  - [ ] 7.1 Set up Firebase configuration and initialization
+    - Create firebase config module with Firestore and Storage initialization
+    - _Requirements: 11.3, 11.4, 11.5_
+  - [ ] 7.2 Implement FirestoreService
+    - CRUD for items (getItems, getItem, createItem, updateItem, deleteItem)
+    - Favorite toggle (toggleFavorite: toggle isFavorite boolean and return updated item)
+    - Usage tracking (incrementUsageCount: increment usageCount by 1 and return updated item)
+    - Bulk operations (bulkDeleteItems, bulkMoveItems)
+    - CRUD for wishlist items (getWishlistItems, createWishlistItem, deleteWishlistItem)
+    - Category config (getCategories, saveCategories)
+    - Uncategorized helpers (ensureUncategorizedCategory, ensureUncategorizedSubcategory)
+    - Person profile (getPersonProfile, savePersonProfile)
+    - Preset items (getPresetItems, createPresetItem)
+    - Impact detection methods: countItemsByCategory, countItemsBySubcategory, countItemsUsingField, countSubcategoriesByCategory
+    - Use ItemSerializer for all item read/write operations
+    - _Requirements: 2.2, 6.1, 7.2, 9.2, 9.4, 11.1, 11.4_
+  - [ ] 7.3 Implement StorageService
+    - uploadImage: upload file to Firebase Storage, return download URL
+    - deleteImage: remove file from Firebase Storage
+    - _Requirements: 3.1, 3.2, 11.2, 11.5_
+
+- [ ] 8. State management
+  - [ ] 8.1 Create React Context providers and hooks
+    - ItemsContext: items list, loading state, CRUD actions
+    - ConfigContext: categories/fields config, CRUD actions
+    - PersonProfileContext: person measurements, save action
+    - WishlistContext: wishlist items, CRUD actions, mark-as-purchased action
+    - SettingsContext: theme selection (light/dark/true-dark)
+    - _Requirements: 1.1, 4.1, 10.1, 10.2_
+
+- [ ] 9. Filtering, sorting, and search logic
+  - [ ] 9.1 Implement filter, sort, and search functions
+    - filterByCategory: filter items by categoryId
+    - filterByFavorite: filter items by isFavorite (All Items / Favorites Only)
+    - searchItems: case-insensitive search across ALL field values (name, brand, colors, material, tags, ownership status, condition, notes, description, and all custom fields in fieldValues map)
+    - Search respects category/subcategory context: when viewing a specific category/subcategory, search only within those items
+    - sortItems: sort by createdAt (newest/oldest), usageCount (most/least used)
+    - Clearing filters returns all items
+    - _Requirements: 4.4, 4.5, 4.6, 4.7_
+  - [ ]* 9.2 Write property tests for filtering and sorting
+    - **Property 4: Category filter returns only matching items**
+    - **Property 5: Text search returns only matching items**
+    - **Property 18: Favorite filter returns only favorited items**
+    - **Property 19: Sort by newest returns items in descending createdAt order**
+    - **Property 20: Sort by most used returns items in descending usageCount order**
+    - **Validates: Requirements 4.4, 4.5**
+
+- [ ] 10. Item count and statistics logic
+  - [ ] 10.1 Implement dashboard statistics computation
+    - Total item count, per-category breakdown
+    - _Requirements: 1.1, 1.3, 10.3_
+  - [ ]* 10.2 Write property test for item count and category breakdown
+    - **Property 1: Item count and category breakdown**
+    - **Validates: Requirements 1.1, 1.3, 10.3**
+
+- [ ] 11. Preset-to-item conversion and wishlist transition
+  - [ ] 11.1 Implement preset-to-item conversion function
+    - Convert PresetItem to Item, preserving categoryId, subcategoryId, and fieldValues
+    - _Requirements: 5.2_
+  - [ ]* 11.2 Write property test for preset conversion
+    - **Property 6: Preset-to-item conversion preserves field values**
+    - **Validates: Requirements 5.2**
+  - [ ] 11.3 Implement wishlist mark-as-purchased logic
+    - Remove from wishlist, optionally create wardrobe item with carried-over field values
+    - _Requirements: 9.3_
+  - [ ]* 11.4 Write property test for wishlist transition
+    - **Property 8: Wishlist purchased transition**
+    - **Validates: Requirements 9.3**
+
+- [ ] 12. Checkpoint - Services and logic
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 13. Core UI components
+  - [ ] 13.1 Implement SplashScreen component
+    - Display app logo and name, auto-navigate to Dashboard after brief delay
+    - _Requirements: 8.1_
+  - [ ] 13.2 Implement BottomNav component
+    - Five tabs: Wardrobe, Presets, Dashboard (center), Wishlist, Settings
+    - Highlight active tab, navigate on tap
+    - _Requirements: 8.2, 8.3, 8.4, 8.5_
+  - [ ] 13.3 Implement App shell with React Router
+    - Set up routes for all pages, wrap with BottomNav, default to Dashboard
+    - Wrap with context providers
+    - _Requirements: 8.2, 8.4, 8.5_
+
+- [ ] 14. Form input components
+  - [ ] 14.1 Implement ItemFormField component
+    - Render appropriate input based on FieldType: text input, textarea, number input, color picker, dropdown, multi-select, boolean toggle, date picker, measurement input
+    - _Requirements: 2.1_
+  - [ ] 14.2 Implement MeasurementInput component
+    - Single value mode and range mode (min–max) with toggle
+    - Unit selector (cm / inches)
+    - _Requirements: 2.1_
+  - [ ] 14.3 Implement ColorPicker component
+    - Color input with EyeDropper API support (where available)
+    - Square color swatch preview
+    - Support selecting multiple colors
+    - _Requirements: 2.4_
+  - [ ] 14.4 Implement ItemForm component
+    - Dynamically render fields from category/subcategory config using ItemFormField
+    - Include Fit Confidence dropdown, Material Stretch toggle
+    - Include ImageUploader
+    - Add heart icon in bottom-right corner below image uploader to toggle favorite status (filled when favorited, outline when not)
+    - Enforce "Name" field as always required and non-removable
+    - Handle validation and submission
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [ ] 15. Page components
+  - [ ] 15.1 Implement DashboardPage
+    - Show total items, category breakdown, quick links to Add/Presets/Wardrobe
+    - _Requirements: 1.1, 1.2, 1.3_
+  - [ ] 15.2 Implement AddClothingPage
+    - Category/subcategory selection, then render ItemForm
+    - On success navigate to WardrobePage
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ] 15.3 Implement WardrobePage with browse modes, filtering, sorting, search, and view modes
+    - Browse mode toggle: Show All (default) / Show Categories
+    - Show All mode: flat list of all items with filters
+    - Show Categories mode: 2-column grid of category cards (thumbnail + name) → click category → 2-column grid of subcategory cards with "All {CategoryName}" as first card (top-left) → click subcategory → filtered item list
+    - Breadcrumb navigation in Show Categories mode: Home > Category > Subcategory
+    - Category filter dropdown (Show All mode only)
+    - Favorite filter toggle: All Items / Favorites Only
+    - Sort dropdown: Newest First (default), Oldest First, Most Used, Least Used, Random (shuffle on page load, persist in component state when navigating to/from detail)
+    - Text search input
+    - View mode toggle with 3 options: List View (default), Grid View (Image Only), Grid View (Image + Name)
+    - List View: vertical list, thumbnail left, text (name, category, colors, material) right, full-width rows
+    - Grid View (Image Only): 2-column grid, thumbnail only, no text
+    - Grid View (Image + Name): 2-column grid, thumbnail with item name below
+    - Persist selected view mode and sort preference in user settings
+    - Click item to view details
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
+  - [ ] 15.4 Implement ItemDetailView with edit and delete
+    - Display all field values and full-size image
+    - Add heart icon in bottom-right corner below image to toggle favorite status (filled when favorited, outline when not)
+    - Edit button opens ItemForm pre-filled
+    - Delete with confirmation dialog
+    - FitComparisonView section: compare against person measurements and similar items
+    - _Requirements: 4.3, 6.1, 6.2, 6.3, 7.1, 7.2, 7.3_
+  - [ ] 15.5 Implement PresetPage
+    - List preset items, one-click add to wardrobe
+    - Option to edit before/after saving
+    - Add new preset functionality
+    - _Requirements: 5.1, 5.2, 5.3, 5.4_
+  - [ ] 15.6 Implement WishlistPage
+    - List wishlist items with name, category, brand, price, image
+    - Add new wishlist item, delete, mark as purchased
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+  - [ ] 15.7 Implement SettingsPage
+    - Profile section with wardrobe statistics
+    - PersonMeasurementsEditor for body measurements
+    - CategoryManager for category/subcategory CRUD with safety warnings
+    - FieldDefinitionEditor for field CRUD per category/subcategory with safety warnings
+    - Optional field templates: When adding new field, show quick-add templates (Occasion, Time Made, Value Bought, Bought In, Bought At) that auto-fill field configuration
+    - Theme selector with 3 options: Light (default), Dark, True Dark
+    - Auth section (sign out) when Firebase Auth enabled
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
+  - [ ] 15.8 Implement safety warning dialogs and deletion behavior for configuration changes
+    - [ ] 15.8.1 Create WarningDialog component
+      - Modal dialog with message, cancel (default), and confirm buttons
+      - Confirm button styled with warning colors (red for delete, yellow for edit)
+    - [ ] 15.8.2 Implement category deletion with item migration or deletion
+      - Before delete: call countSubcategoriesByCategory and countItemsByCategory
+      - Show warning: "X subcategories and Y items use this category. Deleting will move all items to 'Uncategorized'. Continue?"
+      - Add checkbox (unchecked by default): "Also delete all items in this category"
+      - On confirm with checkbox unchecked: call ensureUncategorizedCategory, then update all affected items to use the Uncategorized categoryId, preserve all field values
+      - On confirm with checkbox checked: call bulkDeleteItems with all item IDs in this category, delete associated images from Storage
+    - [ ] 15.8.3 Implement subcategory deletion with item migration or deletion
+      - Before delete: call countItemsBySubcategory
+      - Show warning: "X items use this subcategory. Deleting will move all items to 'Uncategorized {CategoryName}'. Continue?"
+      - Add checkbox (unchecked by default): "Also delete all items in this subcategory"
+      - On confirm with checkbox unchecked: call ensureUncategorizedSubcategory for the parent category, then update all affected items to use the Uncategorized subcategoryId, preserve all field values
+      - On confirm with checkbox checked: call bulkDeleteItems with all item IDs in this subcategory, delete associated images from Storage
+    - [ ] 15.8.4 Implement field definition deletion with field value removal
+      - Before delete: call countItemsUsingField
+      - Show warning: "X items use this field. Deleting will remove this data from those items. Continue?"
+      - On confirm: remove the field from all items' fieldValues map
+      - Items remain intact, only the specific field is removed
+    - [ ]* 15.8.5 Write property tests for deletion behavior
+      - **Property 13: Category deletion moves items to Uncategorized**
+      - **Property 14: Subcategory deletion moves items to Uncategorized subcategory**
+      - **Property 15: Field deletion removes field values from items**
+      - **Validates: Requirements (deletion behavior)**
+  - [ ] 15.9 Implement bulk operations on WardrobePage
+    - [ ] 15.9.1 Add multi-select mode to WardrobePage
+      - Add selection state management (Set of selected item IDs)
+      - Add "Select All" / "Deselect All" buttons
+      - Update ItemCard to show checkbox in top-left corner when selection mode active
+      - Show selected count
+    - [ ] 15.9.2 Implement BulkOperationsToolbar component
+      - Display when items are selected
+      - Show count of selected items
+      - Bulk Delete button with confirmation dialog: "Delete X selected items? This cannot be undone."
+      - Bulk Move button that opens category/subcategory selection dialog
+    - [ ] 15.9.3 Implement bulk delete functionality
+      - Call bulkDeleteItems with selected IDs
+      - Remove associated images from Storage
+      - Clear selection and refresh item list
+    - [ ] 15.9.4 Implement bulk move functionality
+      - Show dialog with category dropdown and optional subcategory dropdown
+      - Confirmation: "Move X selected items to {Category} > {Subcategory}?"
+      - Call bulkMoveItems with selected IDs and target category/subcategory
+      - Preserve all field values in fieldValues map (even if target category/subcategory doesn't have those fields)
+      - Fields not defined in target category/subcategory are hidden in UI but data is retained
+      - If item is moved back to original category, hidden fields reappear with original values
+      - Clear selection and refresh item list
+    - [ ]* 15.9.5 Write property tests for bulk operations
+      - **Property 16: Bulk delete removes all selected items**
+      - **Property 17: Bulk move updates all selected items**
+      - **Validates: Requirements (bulk operations)**
+
+- [ ] 16. Image upload component
+  - [ ] 16.1 Implement ImageUploader component
+    - Photo capture (camera) and gallery selection
+    - Upload progress indicator
+    - Error handling with retry
+    - Return Cloud_Storage URL on success
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 17. Fit comparison UI
+  - [ ] 17.1 Implement FitComparisonView component
+    - Compare item against person measurements
+    - Compare item against other items in same category/subcategory
+    - Display per-measurement deltas and overall fit assessment
+    - _Requirements: (Fit_Comparison design)_
+
+- [ ] 18. Item deletion logic
+  - [ ] 18.1 Implement item deletion with image cleanup
+    - Confirmation dialog, remove item from Firestore, remove associated image from Storage
+    - Update wardrobe list reactively
+    - _Requirements: 7.1, 7.2, 7.3_
+  - [ ]* 18.2 Write property test for item deletion
+    - **Property 7: Item deletion removes item from collection**
+    - **Validates: Requirements 7.2, 7.3**
+
+- [ ] 19. Theme system with 3 modes
+  - [ ] 19.1 Implement theme selector with Tailwind
+    - Three theme options: Light (white background), Dark (dark gray), True Dark (pure black #000000)
+    - Persist theme preference in local storage
+    - Apply theme class to root element (light/dark/true-dark)
+    - Light: white backgrounds, dark text
+    - Dark: dark gray backgrounds (#1a1a1a), light text
+    - True Dark: pure black backgrounds (#000000), light text, optimized for OLED screens
+    - _Requirements: 10.2_
+
+- [ ] 20. UX enhancements
+  - [ ] 20.1 Implement ImageLightbox component
+    - Full-screen modal with dark overlay background
+    - Display item image with pinch-to-zoom support
+    - Swipe left/right to navigate to adjacent items' images (in same order as list)
+    - Tap outside or close button to dismiss
+    - _Requirements: 13.1, 13.2_
+  - [ ]* 20.2 Write property test for image lightbox navigation
+    - **Property 21: Image lightbox navigation**
+    - **Validates: Requirements 13.2**
+  - [ ] 20.3 Implement DuplicateItemButton on ItemDetailView
+    - Add "Duplicate" action button
+    - On click: open ItemForm pre-filled with all field values from current item
+    - User can edit before saving
+    - New item gets new id, createdAt, updatedAt
+    - _Requirements: 13.3_
+  - [ ]* 20.4 Write property test for duplicate item
+    - **Property 22: Duplicate item preserves all field values**
+    - **Validates: Requirements 13.3**
+  - [ ] 20.5 Implement RecentlyViewedWidget on DashboardPage
+    - Track last 5 unique items viewed in component state or local storage
+    - Display thumbnails and names in horizontal scrollable list
+    - Click item to navigate to detail view
+    - Update list when user views an item detail page
+    - _Requirements: 13.4_
+  - [ ]* 20.6 Write property test for recently viewed tracking
+    - **Property 23: Recently viewed tracks last 5 items**
+    - **Validates: Requirements 13.4**
+  - [ ] 20.7 Implement CountBadge component
+    - Small circular badge with number display
+    - Position in top-right corner of category cards
+    - Display inline with filter options
+    - Update counts when items change
+    - _Requirements: 13.5_
+  - [ ] 20.8 Implement QuickActionsMenu on ItemCard
+    - Trigger on long-press or swipe gesture
+    - Display action buttons: toggle favorite (heart), mark as worn (checkmark), delete (trash)
+    - Close on action or tap outside
+    - Update item immediately on action
+    - _Requirements: 13.6_
+  - [ ] 20.9 Implement UndoToast component
+    - Display at bottom of screen after item deletion
+    - Show message "Item deleted" with "Undo" button
+    - Auto-dismiss after 5 seconds
+    - If user taps "Undo" within 5 seconds, restore deleted item with all original data
+    - Store deleted item in temporary state during 5-second window
+    - _Requirements: 13.7, 13.8_
+  - [ ]* 20.10 Write property test for undo delete
+    - **Property 24: Undo delete restores item within 5 seconds**
+    - **Validates: Requirements 13.7, 13.8**
+  - [ ] 20.11 Implement EmptyState component
+    - Display when page or list has no items
+    - Show friendly icon, message, and suggestions
+    - Customize message per context: empty wardrobe, no favorites, no search results, empty category
+    - _Requirements: 13.9_
+  - [ ] 20.12 Implement SkeletonLoader component
+    - Display while loading items from Firestore
+    - Show gray animated rectangles matching current view mode (list/grid)
+    - Replace with actual items when data loads
+    - _Requirements: 13.10_
+
+- [ ] 21. Additional features
+  - [ ] 21.1 Implement drag-and-drop reordering
+    - Add drag-and-drop library (react-beautiful-dnd or @dnd-kit)
+    - Enable dragging categories in CategoryManager
+    - Enable dragging subcategories within categories
+    - Enable dragging fields in FieldDefinitionEditor
+    - Update displayOrder values on drop
+    - Persist new order to Firestore
+    - _Requirements: 14.1, 14.2, 14.3, 14.4_
+  - [ ]* 21.2 Write property test for drag-and-drop order preservation
+    - **Property 25: Drag and drop preserves order**
+    - **Validates: Requirements 14.1, 14.2, 14.3**
+  - [ ] 21.3 Implement QuickFiltersBar component
+    - Horizontal scrollable bar with filter chips
+    - Preset filters: New (last 7 days), Favorites, Recently Worn (last 30 days), Needs Cleaning (60+ days)
+    - Toggle chips on/off, apply AND logic for multiple active filters
+    - Display on WardrobePage above item list
+    - _Requirements: 15.1, 15.2, 15.3, 15.4_
+  - [ ]* 21.4 Write property test for quick filters AND logic
+    - **Property 26: Quick filters apply AND logic**
+    - **Validates: Requirements 15.4**
+  - [ ] 21.5 Implement ColorPaletteFilter component
+    - Extract all unique colors from wardrobe items
+    - Display as swipeable color swatches sorted by frequency
+    - Toggle swatches on/off, apply OR logic for multiple selections
+    - Show hex codes on hover
+    - Display on WardrobePage in filters section
+    - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
+  - [ ]* 21.6 Write property test for color filter OR logic
+    - **Property 27: Color filter applies OR logic**
+    - **Validates: Requirements 16.3**
+  - [ ] 21.7 Implement item history tracking
+    - Add logItemAction method to FirestoreService
+    - Log actions: created, edited (with field changes), worn, favorited/unfavorited, moved
+    - Store history events in Firestore subcollection: /items/{itemId}/history/{eventId}
+    - Implement ItemHistoryTimeline component on ItemDetailView
+    - Display events in reverse chronological order with icons and timestamps
+    - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
+  - [ ]* 21.8 Write property test for item history completeness
+    - **Property 28: Item history completeness**
+    - **Validates: Requirements 17.1, 17.2, 17.3, 17.4**
+  - [ ] 21.9 Implement weather integration
+    - Add weather API integration (OpenWeatherMap or similar)
+    - Create WeatherWidget component for Dashboard
+    - Display current temperature, conditions, forecast
+    - Suggest appropriate items based on temperature and conditions
+    - Add location configuration in Settings
+    - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
+  - [ ] 21.10 Implement packing lists
+    - Create PackingList data model and Firestore methods
+    - Implement PackingListManager page component
+    - Create/edit/delete packing lists
+    - Add items from wardrobe to lists (references, not moves)
+    - Mark items as packed/unpacked with checkboxes
+    - Add navigation to packing lists from bottom nav or dashboard
+    - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
+  - [ ]* 21.11 Write property test for packing list independence
+    - **Property 29: Packing list independence**
+    - **Validates: Requirements 19.4, 19.5**
+  - [ ] 21.12 Implement seasonal storage
+    - Add inStorage boolean field to Item model
+    - Add StorageToggle component on ItemDetailView
+    - Filter out storage items from default wardrobe view
+    - Add "Show Storage Items" filter toggle
+    - Display storage item count on Dashboard
+    - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5_
+  - [ ]* 21.13 Write property test for storage filter correctness
+    - **Property 30: Storage filter correctness**
+    - **Validates: Requirements 20.2, 20.3**
+  - [ ] 21.14 Implement backup and restore
+    - Create WardrobeBackup data model
+    - Implement exportWardrobe method: serialize all data to JSON
+    - Implement importWardrobe method: deserialize and restore data
+    - Add BackupExportImport component in Settings
+    - Export button downloads JSON file
+    - Import button reads file with confirmation warning
+    - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5_
+  - [ ]* 21.15 Write property test for backup round-trip integrity
+    - **Property 31: Backup round-trip integrity**
+    - **Validates: Requirements 21.2, 21.5**
+  - [ ] 21.16 Implement wardrobe statistics
+    - Create StatisticsPanel component
+    - Calculate: total wardrobe value, cost per wear, most/least worn items
+    - Calculate: color distribution, items per category, average item age
+    - Calculate: items added per month trend, storage vs active ratio
+    - Display charts (pie chart for colors, bar chart for trends)
+    - Add to Dashboard or Settings page
+    - Make stats clickable to navigate to filtered views
+    - _Requirements: 22.1, 22.2, 22.3, 22.4, 22.5_
+  - [ ]* 21.17 Write property test for cost per wear calculation
+    - **Property 32: Cost per wear calculation**
+    - **Validates: Requirements 22.2**
+  - [ ] 21.18 Implement duplicate detection
+    - Add findSimilarItems method to FirestoreService
+    - Compare: category, subcategory, colors, brand, name (fuzzy matching using Levenshtein distance)
+    - Create DuplicateDetectionDialog component
+    - Show dialog when potential duplicates found during item creation
+    - Display similar items with thumbnails
+    - Options: "Add Anyway", "View Similar Item", "Cancel"
+    - _Requirements: 23.1, 23.2, 23.3, 23.4, 23.5_
+  - [ ]* 21.19 Write property test for duplicate detection accuracy
+    - **Property 33: Duplicate detection accuracy**
+    - **Validates: Requirements 23.2, 23.3**
+  - [ ] 21.20 Implement soft delete and Recently Deleted page
+    - Add isDeleted and deletedAt fields to Item model
+    - Update deleteItem to use soft delete (set isDeleted=true, deletedAt=now)
+    - Filter out deleted items from all normal wardrobe queries (getItems, search, filters)
+    - Include deleted items in statistics calculations (historical data)
+    - Add softDeleteItem, restoreItem, getDeletedItems, permanentlyDeleteItem, bulkPermanentlyDeleteItems, emptyRecentlyDeleted methods to FirestoreService
+    - Create RecentlyDeletedPage component
+    - Display soft-deleted items with "Deleted X days ago" labels
+    - Add "Restore" button per item (calls restoreItem)
+    - Add "Delete Permanently" button per item with warning dialog: "Permanently deleting this item will affect your wardrobe statistics (cost per wear, items added history, etc.). This cannot be undone. Continue?"
+    - Add bulk select and "Delete Permanently" for multiple items with warning
+    - Add "Empty Recently Deleted" button with warning dialog
+    - Add "Recently Deleted" link in Settings menu
+    - Update UndoToast to restore soft-deleted items (not permanently deleted ones)
+    - _Requirements: 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8, 24.9, 24.10_
+  - [ ]* 21.21 Write property tests for soft delete behavior
+    - **Property 34: Soft delete preserves statistics**
+    - **Property 35: Restore reverses soft delete**
+    - **Validates: Requirements 24.2, 24.5, 24.6**
+  - [ ] 21.22 Implement ownership status tracking
+    - Add "Ownership Status" as permanent global field (dropdown: Owned/Rented/Borrowed/Sold/Given-Donated)
+    - Set default value to "Owned" for all new items
+    - Mark field as non-removable (system field like Name, Image, Favorite)
+    - Update getItems query to filter out Sold/Given-Donated items by default
+    - Add "Show Sold/Donated" filter toggle on WardrobePage (off by default)
+    - When filter is enabled, include all ownership statuses in results
+    - Update statistics calculations to include sold/donated items in historical data but exclude from current wardrobe value
+    - Add ownership status badge on item cards
+    - _Requirements: 25.1, 25.2, 25.3, 25.4, 25.5, 25.6, 25.7, 25.8_
+  - [ ]* 21.23 Write property test for ownership status filter
+    - **Property 36: Ownership status filter correctness**
+    - **Validates: Requirements 25.4, 25.5**
+
+- [ ] 22. Native app deployment with Capacitor
+  - [ ] 22.1 Install and configure Capacitor
+    - Install @capacitor/core, @capacitor/cli, @capacitor/ios, @capacitor/android
+    - Run `npx cap init` to initialize Capacitor project
+    - Configure app name, app ID (com.yourname.wardrobemanager), and web directory
+    - Update capacitor.config.ts with proper settings
+    - _Requirements: 26.1, 26.2_
+  - [ ] 22.2 Configure Capacitor plugins for native features
+    - Install @capacitor/camera for photo capture
+    - Install @capacitor/filesystem for local file access
+    - Install @capacitor/splash-screen for native splash screen
+    - Install @capacitor/status-bar for status bar styling
+    - Configure plugin permissions in iOS Info.plist and Android AndroidManifest.xml
+    - _Requirements: 26.3, 26.4_
+  - [ ] 22.3 Update ImageUploader to use Capacitor Camera API
+    - Detect if running in native app (Capacitor.isNativePlatform())
+    - Use @capacitor/camera for native photo capture and gallery access
+    - Fall back to web APIs for browser version
+    - Handle platform-specific image paths and conversions
+    - _Requirements: 26.3, 26.4_
+  - [ ] 22.4 Configure offline support and data sync
+    - Ensure Firebase offline persistence is enabled
+    - Test offline functionality on native apps
+    - Add network status detection
+    - Show sync status indicator when online/offline
+    - _Requirements: 26.5_
+  - [ ] 22.5 Create app icons and splash screens
+    - Design app icon (1024x1024 PNG)
+    - Generate all required icon sizes for iOS and Android using Capacitor asset generator
+    - Design splash screen (2732x2732 PNG)
+    - Generate splash screen assets for all device sizes
+    - Update Capacitor config with icon and splash screen paths
+    - _Requirements: 26.6_
+  - [ ] 22.6 Build and test iOS app
+    - Run `npx cap add ios` to create iOS project
+    - Run `npm run build` to build web assets
+    - Run `npx cap sync` to copy web assets to native project
+    - Run `npx cap open ios` to open in Xcode
+    - Configure signing & capabilities in Xcode (requires Apple Developer account)
+    - Test on iOS simulator
+    - Test on physical iOS device
+    - _Requirements: 26.1, 26.7_
+  - [ ] 22.7 Build and test Android app
+    - Run `npx cap add android` to create Android project
+    - Run `npm run build` to build web assets
+    - Run `npx cap sync` to copy web assets to native project
+    - Run `npx cap open android` to open in Android Studio
+    - Configure signing key for release build
+    - Test on Android emulator
+    - Test on physical Android device
+    - _Requirements: 26.2, 26.8_
+  - [ ] 22.8 Prepare iOS App Store submission
+    - Create app listing in App Store Connect
+    - Prepare app screenshots (required sizes: 6.5", 5.5")
+    - Write app description, keywords, and metadata
+    - Set app category (Lifestyle)
+    - Configure pricing (free)
+    - Create privacy policy URL
+    - Build release version in Xcode (Archive)
+    - Upload to App Store Connect via Xcode
+    - Submit for review
+    - _Requirements: 26.7_
+  - [ ] 22.9 Prepare Google Play Store submission
+    - Create app listing in Google Play Console
+    - Prepare app screenshots (phone, tablet, 7-inch tablet)
+    - Write app description and metadata
+    - Set app category (Lifestyle)
+    - Configure pricing (free)
+    - Create privacy policy URL
+    - Build signed release APK/AAB in Android Studio
+    - Upload to Google Play Console
+    - Submit for review
+    - _Requirements: 26.8_
+
+- [ ] 23. Final checkpoint
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties
+- Unit tests validate specific examples and edge cases
