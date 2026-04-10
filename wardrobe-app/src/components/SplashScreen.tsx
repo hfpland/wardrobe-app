@@ -5,7 +5,7 @@ export default function SplashScreen() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(() => navigate('/wardrobe', { replace: true }), 1800);
+    const timer = setTimeout(() => navigate('/login', { replace: true }), 1800);
     return () => clearTimeout(timer);
   }, [navigate]);
 
