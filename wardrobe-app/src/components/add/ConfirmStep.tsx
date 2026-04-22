@@ -76,7 +76,7 @@ export default function ConfirmStep(p: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
         <button onClick={p.onRetake} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 14 }}>← Retake</button>
         <p style={{ margin: 0, fontWeight: 600, fontSize: 16 }}>New Piece</p>
-        <button onClick={p.onDetails} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 14, fontWeight: 600 }}>Details →</button>
+        <button onClick={p.onDetails} disabled={!p.selectedCategory} style={{ background: 'none', border: 'none', cursor: p.selectedCategory ? 'pointer' : 'default', color: p.selectedCategory ? '#374151' : '#d1d5db', fontSize: 14, fontWeight: 600 }}>Details →</button>
       </div>
 
       {/* Photo */}

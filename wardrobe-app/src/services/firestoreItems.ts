@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export interface ItemDoc {
@@ -42,4 +42,23 @@ export async function getItems(userId: string): Promise<ItemDoc[]> {
   const q = query(itemsCol(userId), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as ItemDoc));
+}
+
+export async function getItem(userId: string, itemId: string): Promise<ItemDoc | null> {
+  const snap = await getDocs(query(itemsCol(userId)));
+  const found = snap.docs.find(d => d.id === itemId);
+  if (!found) return null;
+  return { id: found.id, ...found.data() } as ItemDoc;
+}
+
+export async function updateItem(userId: string, itemId: string, data: Partial<ItemDoc>): Promise<void> {
+  await updateDoc(doc(db, 'users', userId, 'items', itemId), data);
+}
+
+export async function deleteItems(userId: string, itemIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  for (const id of itemIds) {
+    batch.update(doc(db, 'users', userId, 'items', id), { isDeleted: true });
+  }
+  await batch.commit();
 }

@@ -5,6 +5,7 @@ import BottomNav from './components/BottomNav';
 import WardrobePage from './pages/WardrobePage';
 import DashboardPage from './pages/DashboardPage';
 import AddItemPage from './pages/AddItemPage';
+import ItemDetailPage from './pages/ItemDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 
@@ -29,6 +30,7 @@ function Layout() {
         <Route path="/" element={<SplashScreen />} />
         <Route path="/login" element={user ? <Navigate to="/wardrobe" replace /> : <LoginPage />} />
         <Route path="/wardrobe" element={user ? <WardrobePage /> : <Navigate to="/login" replace />} />
+        <Route path="/wardrobe/:id" element={user ? <ItemDetailPage /> : <Navigate to="/login" replace />} />
         <Route path="/dashboard" element={user ? <DashboardPage /> : <Navigate to="/login" replace />} />
         <Route path="/add" element={user ? <AddItemPage /> : <Navigate to="/login" replace />} />
         <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" replace />} />

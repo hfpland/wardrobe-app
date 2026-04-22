@@ -85,6 +85,7 @@ export default function AddItemPage() {
         onChange={setDetails}
         onBack={() => setStep('confirm')}
         onSave={handleSave}
+        saving={saving}
       />
     );
   }

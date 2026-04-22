@@ -63,6 +63,7 @@ interface Props {
   onChange: (d: DetailsData) => void;
   onBack: () => void;
   onSave: () => void;
+  saving?: boolean;
 }
 
 type EditField = 'material' | 'size' | 'measurements' | 'layer' | 'condition' | 'brand' | 'season' | 'notes' | null;
@@ -73,7 +74,8 @@ const penIcon = (
   </svg>
 );
 
-export default function DetailsStep({ photoUrl, selectedCategory, data: d, onChange, onBack, onSave }: Props) {
+export default function DetailsStep({ photoUrl, selectedCategory, data: d, onChange, onBack, onSave, saving }: Props) {
+  const canSave = !!selectedCategory && !saving;
   const [editing, setEditing] = useState<EditField>(null);
   const set = <K extends keyof DetailsData>(key: K, val: DetailsData[K]) => onChange({ ...d, [key]: val });
 
@@ -140,7 +142,7 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white', paddingBottom: 100, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white', paddingBottom: 24, overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 14 }}>← Back</button>
         <p style={{ margin: 0, fontWeight: 600, fontSize: 16 }}>Details</p>
@@ -166,8 +168,19 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
       {row('Season', d.season.length ? d.season.join(', ') : null, 'season')}
       {row('Notes', d.notes ? (d.notes.length > 30 ? d.notes.slice(0, 30) + '…' : d.notes) : null, 'notes')}
 
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, padding: '12px 16px 28px', background: 'white', borderTop: '1px solid #f3f4f6' }}>
-        <button onClick={onSave} style={{ width: '100%', padding: '14px 0', borderRadius: 14, fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer', background: '#111827', color: 'white' }}>Save to Wardrobe</button>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '28px 16px 32px' }}>
+        <button onClick={onSave} disabled={!canSave} aria-label="Save to Wardrobe"
+          style={{ width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#111827' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: canSave ? '0 4px 12px rgba(0,0,0,0.2)' : 'none', transition: 'background 0.2s, box-shadow 0.2s' }}>
+          {saving ? (
+            <svg viewBox="0 0 24 24" style={{ width: 24, height: 24, animation: 'spin 1s linear infinite' }}>
+              <circle cx="12" cy="12" r="10" fill="none" stroke="white" strokeWidth="2.5" strokeDasharray="50 20" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke={canSave ? 'white' : '#9ca3af'} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {editing === 'material' && multiChipSheet('Material', MATERIALS, d.material, v => set('material', v))}
