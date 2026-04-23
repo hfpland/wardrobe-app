@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-const MATERIALS = ['Cotton', 'Denim', 'Linen', 'Silk', 'Wool', 'Polyester', 'Nylon', 'Leather', 'Chambray', 'Fleece', 'Knit'];
-const LAYERS = ['Inner', 'Outer', 'Both'];
+const BASE_MATERIALS = ['Cotton', 'Denim', 'Linen', 'Silk', 'Wool', 'Polyester', 'Nylon', 'Leather', 'Chambray', 'Fleece', 'Knit'];
+const BASE_LAYERS = ['Inner', 'Outer', 'Both'];
 const CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Worn'];
 const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter', 'All season'];
 
@@ -46,6 +46,7 @@ function defaultSizeType(category: string | null): SizeType {
 }
 
 export interface DetailsData {
+  name: string;
   brand: string;
   season: string[];
   notes: string;
@@ -64,9 +65,11 @@ interface Props {
   onBack: () => void;
   onSave: () => void;
   saving?: boolean;
+  customMaterials?: string[];
+  customLayers?: string[];
 }
 
-type EditField = 'material' | 'size' | 'measurements' | 'layer' | 'condition' | 'brand' | 'season' | 'notes' | null;
+type EditField = 'name' | 'material' | 'size' | 'measurements' | 'layer' | 'condition' | 'brand' | 'season' | 'notes' | null;
 
 const penIcon = (
   <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} style={{ width: 16, height: 16, flexShrink: 0 }}>
@@ -74,8 +77,10 @@ const penIcon = (
   </svg>
 );
 
-export default function DetailsStep({ photoUrl, selectedCategory, data: d, onChange, onBack, onSave, saving }: Props) {
+export default function DetailsStep({ photoUrl, selectedCategory, data: d, onChange, onBack, onSave, saving, customMaterials = [], customLayers = [] }: Props) {
   const canSave = !!selectedCategory && !saving;
+  const MATERIALS = [...BASE_MATERIALS, ...customMaterials];
+  const LAYERS = [...BASE_LAYERS, ...customLayers];
   const [editing, setEditing] = useState<EditField>(null);
   const set = <K extends keyof DetailsData>(key: K, val: DetailsData[K]) => onChange({ ...d, [key]: val });
 
@@ -135,7 +140,7 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
         <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
         <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>{title}</p>
         <input type="text" value={value} onChange={e => onCh(e.target.value)} placeholder={placeholder} autoFocus
-          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', boxSizing: 'border-box', marginBottom: 14 }} />
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', boxSizing: 'border-box', marginBottom: 14, caretColor: '#111827' }} />
         <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
       </div>
     </>
@@ -155,6 +160,7 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
       )}
       <div style={{ padding: '4px 16px 8px' }}><p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>All fields are optional</p></div>
 
+      {row('Name', d.name || null, 'name')}
       {row('Material', d.material.length ? d.material.join(', ') : null, 'material')}
       {row('Size', d.sizeLabel || null, 'size')}
       {row('Measurements', (() => {
@@ -183,6 +189,7 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
         </button>
       </div>
 
+      {editing === 'name' && textSheet('Name', d.name, v => set('name', v), 'e.g. AIRism Cotton Crew Neck T-Shirt')}
       {editing === 'material' && multiChipSheet('Material', MATERIALS, d.material, v => set('material', v))}
       {editing === 'layer' && chipSheet('Layer', LAYERS, d.layer, v => set('layer', v))}
       {editing === 'condition' && chipSheet('Condition', CONDITIONS, d.condition, v => set('condition', v))}
@@ -197,7 +204,7 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
             <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>Notes</p>
             <textarea value={d.notes} onChange={e => set('notes', e.target.value)} placeholder="Anything worth remembering…" rows={4} autoFocus
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 14 }} />
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 14, caretColor: '#111827' }} />
             <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
           </div>
         </>

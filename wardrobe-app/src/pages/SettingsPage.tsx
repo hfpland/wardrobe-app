@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   return (
@@ -21,6 +23,21 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Menu items */}
+      <button onClick={() => navigate('/settings/wardrobe-setup')}
+        style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '16px', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={1.8} style={{ width: 22, height: 22, flexShrink: 0 }}>
+          <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: '#111827' }}>Wardrobe Setup</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9ca3af' }}>Custom sizes, materials, layers</p>
+        </div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
 
       <div style={{ flex: 1 }} />
 

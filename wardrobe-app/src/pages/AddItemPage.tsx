@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { extractDominantColors } from '../utils/colorDetect';
 import { DEFAULT_COLOR_PRESETS, snapToPreset } from '../utils/colorPresets';
 import { uploadItemImage } from '../services/imageUpload';
 import { createItem } from '../services/firestoreItems';
 import { useAuth } from '../contexts/AuthContext';
+import { getWardrobeSetup } from '../services/wardrobeSetup';
 import PhotoStep from '../components/add/PhotoStep';
 import ConfirmStep from '../components/add/ConfirmStep';
 import DetailsStep, { type DetailsData } from '../components/add/DetailsStep';
@@ -21,11 +22,21 @@ export default function AddItemPage() {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [customMaterials, setCustomMaterials] = useState<string[]>([]);
+  const [customLayers, setCustomLayers] = useState<string[]>([]);
 
   const [details, setDetails] = useState<DetailsData>({
-    brand: '', season: [], notes: '', material: [],
+    name: '', brand: '', season: [], notes: '', material: [],
     sizeLabel: '', layer: null, condition: null, measurements: {},
   });
+
+  useEffect(() => {
+    if (!user) return;
+    getWardrobeSetup(user.uid).then(setup => {
+      setCustomMaterials(setup.customMaterials);
+      setCustomLayers(setup.customLayers);
+    });
+  }, [user]);
 
   function handlePhotoSelected(file: File, url: string) {
     setPhotoFile(file);
@@ -53,6 +64,7 @@ export default function AddItemPage() {
     try {
       const imageUrl = await uploadItemImage(user.uid, photoFile);
       await createItem(user.uid, {
+        name: details.name ?? '',
         categoryId: selectedCategory,
         imageUrl,
         colors: selectedColors,
@@ -86,6 +98,8 @@ export default function AddItemPage() {
         onBack={() => setStep('confirm')}
         onSave={handleSave}
         saving={saving}
+        customMaterials={customMaterials}
+        customLayers={customLayers}
       />
     );
   }

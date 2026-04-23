@@ -4,6 +4,7 @@ import { db } from '../firebase';
 export interface ItemDoc {
   id?: string;
   userId: string;
+  name: string;
   categoryId: string;
   imageUrl: string;
   colors: string[];
@@ -19,13 +20,14 @@ export interface ItemDoc {
   usageCount: number;
   isDeleted: boolean;
   createdAt?: unknown;
+  updatedAt?: unknown;
 }
 
 function itemsCol(userId: string) {
   return collection(db, 'users', userId, 'items');
 }
 
-export async function createItem(userId: string, data: Omit<ItemDoc, 'id' | 'userId' | 'createdAt' | 'isFavorite' | 'usageCount' | 'isDeleted'>): Promise<string> {
+export async function createItem(userId: string, data: Omit<ItemDoc, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'isFavorite' | 'usageCount' | 'isDeleted'>): Promise<string> {
   const doc: Omit<ItemDoc, 'id'> = {
     ...data,
     userId,
@@ -33,6 +35,7 @@ export async function createItem(userId: string, data: Omit<ItemDoc, 'id' | 'use
     usageCount: 0,
     isDeleted: false,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
   const ref = await addDoc(itemsCol(userId), doc);
   return ref.id;
@@ -52,7 +55,7 @@ export async function getItem(userId: string, itemId: string): Promise<ItemDoc |
 }
 
 export async function updateItem(userId: string, itemId: string, data: Partial<ItemDoc>): Promise<void> {
-  await updateDoc(doc(db, 'users', userId, 'items', itemId), data);
+  await updateDoc(doc(db, 'users', userId, 'items', itemId), { ...data, updatedAt: serverTimestamp() });
 }
 
 export async function deleteItems(userId: string, itemIds: string[]): Promise<void> {
