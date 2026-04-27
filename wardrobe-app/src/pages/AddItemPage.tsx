@@ -72,6 +72,7 @@ export default function AddItemPage() {
         season: details.season,
         notes: details.notes,
         material: details.material,
+        tags: [],
         sizeLabel: details.sizeLabel,
         layer: details.layer,
         condition: details.condition,

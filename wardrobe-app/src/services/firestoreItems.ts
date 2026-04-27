@@ -12,6 +12,7 @@ export interface ItemDoc {
   season: string[];
   notes: string;
   material: string[];
+  tags: string[];
   sizeLabel: string;
   layer: string | null;
   condition: string | null;

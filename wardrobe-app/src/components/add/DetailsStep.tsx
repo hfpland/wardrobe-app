@@ -72,7 +72,7 @@ interface Props {
 type EditField = 'name' | 'material' | 'size' | 'measurements' | 'layer' | 'condition' | 'brand' | 'season' | 'notes' | null;
 
 const penIcon = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} style={{ width: 16, height: 16, flexShrink: 0 }}>
+  <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth={2} style={{ width: 16, height: 16, flexShrink: 0 }}>
     <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
   </svg>
 );
@@ -86,9 +86,9 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
 
   const row = (label: string, value: string | null | undefined, field: EditField) => (
     <button onClick={() => setEditing(field)}
-      style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '14px 16px', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
-      <span style={{ fontSize: 14, color: '#6b7280', width: 110, flexShrink: 0 }}>{label}</span>
-      <span style={{ flex: 1, fontSize: 14, color: value ? '#111827' : '#d1d5db', fontWeight: value ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
+      style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '14px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+      <span style={{ fontSize: 14, color: 'var(--text-secondary)', width: 110, flexShrink: 0 }}>{label}</span>
+      <span style={{ flex: 1, fontSize: 14, color: value ? 'var(--text)' : 'var(--text-tertiary)', fontWeight: value ? 500 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
       {penIcon}
     </button>
   );
@@ -96,13 +96,13 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
   const chipSheet = (title: string, options: string[], selected: string | null, onSelect: (v: string | null) => void) => (
     <>
       <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
-        <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
+        <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
         <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>{title}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {options.map(opt => (
             <button key={opt} onClick={() => { onSelect(opt === selected ? null : opt); setEditing(null); }}
-              style={{ padding: '8px 16px', borderRadius: 999, fontSize: 14, fontWeight: 500, cursor: 'pointer', border: selected === opt ? '1px solid #111827' : '1px solid #e5e7eb', background: selected === opt ? '#111827' : 'white', color: selected === opt ? 'white' : '#374151' }}>
+              style={{ padding: '8px 16px', borderRadius: 999, fontSize: 14, fontWeight: 500, cursor: 'pointer', border: selected === opt ? '1px solid var(--text)' : '1px solid var(--border-strong)', background: selected === opt ? 'var(--text)' : 'var(--bg)', color: selected === opt ? 'var(--bg)' : 'var(--text)' }}>
               {opt}
             </button>
           ))}
@@ -114,21 +114,21 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
   const multiChipSheet = (title: string, options: string[], selected: string[], onToggle: (v: string[]) => void) => (
     <>
       <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
-        <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
+        <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
         <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>{title}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {options.map(opt => {
             const active = selected.includes(opt);
             return (
               <button key={opt} onClick={() => onToggle(active ? selected.filter(s => s !== opt) : [...selected, opt])}
-                style={{ padding: '8px 16px', borderRadius: 999, fontSize: 14, fontWeight: 500, cursor: 'pointer', border: active ? '1px solid #111827' : '1px solid #e5e7eb', background: active ? '#111827' : 'white', color: active ? 'white' : '#374151' }}>
+                style={{ padding: '8px 16px', borderRadius: 999, fontSize: 14, fontWeight: 500, cursor: 'pointer', border: active ? '1px solid var(--text)' : '1px solid var(--border-strong)', background: active ? 'var(--text)' : 'var(--bg)', color: active ? 'var(--bg)' : 'var(--text)' }}>
                 {opt}
               </button>
             );
           })}
         </div>
-        <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
+        <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'var(--text)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
       </div>
     </>
   );
@@ -136,29 +136,29 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
   const textSheet = (title: string, value: string, onCh: (v: string) => void, placeholder: string) => (
     <>
       <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
-        <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
+        <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
         <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>{title}</p>
         <input type="text" value={value} onChange={e => onCh(e.target.value)} placeholder={placeholder} autoFocus
-          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', boxSizing: 'border-box', marginBottom: 14, caretColor: '#111827' }} />
-        <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border-strong)', fontSize: 15, outline: 'none', background: 'var(--bg-secondary)', boxSizing: 'border-box', marginBottom: 14, caretColor: 'var(--text)' }} />
+        <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'var(--text)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
       </div>
     </>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'white', paddingBottom: 24, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg)', paddingBottom: 24, overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 14 }}>← Back</button>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: 14 }}>← Back</button>
         <p style={{ margin: 0, fontWeight: 600, fontSize: 16 }}>Details</p>
-        <button onClick={onSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14 }}>Skip →</button>
+        <button onClick={onSave} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14 }}>Skip →</button>
       </div>
       {photoUrl && (
         <div style={{ padding: '0 16px 12px' }}>
           <img src={photoUrl} alt="clothing" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, display: 'block' }} />
         </div>
       )}
-      <div style={{ padding: '4px 16px 8px' }}><p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>All fields are optional</p></div>
+      <div style={{ padding: '4px 16px 8px' }}><p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>All fields are optional</p></div>
 
       {row('Name', d.name || null, 'name')}
       {row('Material', d.material.length ? d.material.join(', ') : null, 'material')}
@@ -176,13 +176,13 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
 
       <div style={{ display: 'flex', justifyContent: 'center', padding: '28px 16px 32px' }}>
         <button onClick={onSave} disabled={!canSave} aria-label="Save to Wardrobe"
-          style={{ width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? '#111827' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: canSave ? '0 4px 12px rgba(0,0,0,0.2)' : 'none', transition: 'background 0.2s, box-shadow 0.2s' }}>
+          style={{ width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: canSave ? 'pointer' : 'not-allowed', background: canSave ? 'var(--text)' : 'var(--border-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: canSave ? '0 4px 12px rgba(0,0,0,0.2)' : 'none', transition: 'background 0.2s, box-shadow 0.2s' }}>
           {saving ? (
             <svg viewBox="0 0 24 24" style={{ width: 24, height: 24, animation: 'spin 1s linear infinite' }}>
-              <circle cx="12" cy="12" r="10" fill="none" stroke="white" strokeWidth="2.5" strokeDasharray="50 20" />
+              <circle cx="12" cy="12" r="10" fill="none" stroke="var(--bg)" strokeWidth="2.5" strokeDasharray="50 20" />
             </svg>
           ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke={canSave ? 'white' : '#9ca3af'} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke={canSave ? 'var(--bg)' : 'var(--text-tertiary)'} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
               <polyline points="20 6 9 17 4 12" />
             </svg>
           )}
@@ -200,12 +200,12 @@ export default function DetailsStep({ photoUrl, selectedCategory, data: d, onCha
       {editing === 'notes' && (
         <>
           <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
-            <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
+          <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
+            <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
             <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>Notes</p>
             <textarea value={d.notes} onChange={e => set('notes', e.target.value)} placeholder="Anything worth remembering…" rows={4} autoFocus
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 14, caretColor: '#111827' }} />
-            <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border-strong)', fontSize: 15, outline: 'none', background: 'var(--bg-secondary)', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 14, caretColor: 'var(--text)' }} />
+            <button onClick={() => setEditing(null)} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'var(--text)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
           </div>
         </>
       )}
@@ -219,7 +219,7 @@ function SizeSheet({ category, value, onChange, onClose }: { category: string | 
   const [sizeType, setSizeType] = useState<SizeType>(() => defaultSizeType(category));
   const [shoeFormat, setShoeFormat] = useState<ShoeFormat>('US');
   const chip = (label: string, active: boolean, onClick: () => void, small = false) => (
-    <button key={label} onClick={onClick} style={{ padding: small ? '6px 12px' : '8px 16px', borderRadius: 999, fontSize: small ? 13 : 14, fontWeight: 500, cursor: 'pointer', border: active ? '1px solid #111827' : '1px solid #e5e7eb', background: active ? '#111827' : 'white', color: active ? 'white' : '#374151' }}>{label}</button>
+    <button key={label} onClick={onClick} style={{ padding: small ? '6px 12px' : '8px 16px', borderRadius: 999, fontSize: small ? 13 : 14, fontWeight: 500, cursor: 'pointer', border: active ? '1px solid var(--text)' : '1px solid var(--border-strong)', background: active ? 'var(--text)' : 'var(--bg)', color: active ? 'var(--bg)' : 'var(--text)' }}>{label}</button>
   );
   const sel = (display: string) => onChange(value === display ? '' : display);
 
@@ -230,8 +230,8 @@ function SizeSheet({ category, value, onChange, onClose }: { category: string | 
       case 'collar': return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>{COLLAR_SIZES.map(s => chip(s, value === `Collar ${s}`, () => sel(`Collar ${s}`), true))}</div>;
       case 'waist': return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>{WAIST_SIZES.map(s => chip(s, value === `Waist ${s}`, () => sel(`Waist ${s}`), true))}</div>;
       case 'shoes': return (<>
-        <div style={{ display: 'flex', gap: 0, marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-          {(['US','UK','EU'] as ShoeFormat[]).map(f => <button key={f} onClick={() => { setShoeFormat(f); onChange(''); }} style={{ flex: 1, padding: '8px 0', fontSize: 14, fontWeight: shoeFormat === f ? 600 : 400, cursor: 'pointer', border: 'none', background: shoeFormat === f ? '#111827' : 'white', color: shoeFormat === f ? 'white' : '#374151' }}>{f}</button>)}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-strong)' }}>
+          {(['US','UK','EU'] as ShoeFormat[]).map(f => <button key={f} onClick={() => { setShoeFormat(f); onChange(''); }} style={{ flex: 1, padding: '8px 0', fontSize: 14, fontWeight: shoeFormat === f ? 600 : 400, cursor: 'pointer', border: 'none', background: shoeFormat === f ? 'var(--text)' : 'var(--bg)', color: shoeFormat === f ? 'var(--bg)' : 'var(--text)' }}>{f}</button>)}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>{SHOE_SIZES[shoeFormat].map(s => chip(s, value === `${shoeFormat} ${s}`, () => sel(`${shoeFormat} ${s}`), true))}</div>
       </>);
@@ -241,15 +241,15 @@ function SizeSheet({ category, value, onChange, onClose }: { category: string | 
 
   return (<>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
-    <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px', maxHeight: '80vh', overflowY: 'auto' }}>
-      <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
+    <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px', maxHeight: '80vh', overflowY: 'auto' }}>
+      <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
       <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px' }}>Size</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-        {SIZE_TYPES.map(t => <button key={t.key} onClick={() => { setSizeType(t.key); if (t.key === 'one_size') onChange('One Size'); else onChange(''); }} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: sizeType === t.key ? '1.5px solid #111827' : '1px solid #d1d5db', background: sizeType === t.key ? '#f3f4f6' : 'white', color: sizeType === t.key ? '#111827' : '#6b7280' }}>{t.label}</button>)}
+        {SIZE_TYPES.map(t => <button key={t.key} onClick={() => { setSizeType(t.key); if (t.key === 'one_size') onChange('One Size'); else onChange(''); }} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: sizeType === t.key ? '1.5px solid var(--text)' : '1px solid var(--text-tertiary)', background: sizeType === t.key ? 'var(--bg-tertiary)' : 'var(--bg)', color: sizeType === t.key ? 'var(--text)' : 'var(--text-secondary)' }}>{t.label}</button>)}
       </div>
       {opts()}
-      {sizeType !== 'one_size' && <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder="Or type a custom size" style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', boxSizing: 'border-box', marginBottom: 14 }} />}
-      <button onClick={onClose} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
+      {sizeType !== 'one_size' && <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder="Or type a custom size" style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border-strong)', fontSize: 15, outline: 'none', background: 'var(--bg-secondary)', boxSizing: 'border-box', marginBottom: 14 }} />}
+      <button onClick={onClose} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'var(--text)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
     </div>
   </>);
 }
@@ -272,24 +272,24 @@ function MeasurementsSheet({ category, values, onChange, onClose }: { category: 
 
   return (<>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
-    <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px', maxHeight: '80vh', overflowY: 'auto' }}>
-      <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 16px' }} />
+    <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px', maxHeight: '80vh', overflowY: 'auto' }}>
+      <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Measurements</p>
-        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-          {(['cm', 'inch'] as const).map(u => <button key={u} onClick={u !== unit ? toggleUnit : undefined} style={{ padding: '5px 14px', fontSize: 13, fontWeight: unit === u ? 600 : 400, cursor: 'pointer', border: 'none', background: unit === u ? '#111827' : 'white', color: unit === u ? 'white' : '#6b7280' }}>{u}</button>)}
+        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-strong)' }}>
+          {(['cm', 'inch'] as const).map(u => <button key={u} onClick={u !== unit ? toggleUnit : undefined} style={{ padding: '5px 14px', fontSize: 13, fontWeight: unit === u ? 600 : 400, cursor: 'pointer', border: 'none', background: unit === u ? 'var(--text)' : 'var(--bg)', color: unit === u ? 'var(--bg)' : 'var(--text-secondary)' }}>{u}</button>)}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
         {fields.map(label => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 14, color: '#6b7280', width: 120, flexShrink: 0 }}>{label}</span>
-            <input type="number" value={values[label] ?? ''} onChange={e => onChange({ ...values, [label]: e.target.value })} placeholder="—" style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 15, outline: 'none', background: '#fafafa', boxSizing: 'border-box' }} />
-            <span style={{ fontSize: 12, color: '#9ca3af', width: 30 }}>{unit}</span>
+            <span style={{ fontSize: 14, color: 'var(--text-secondary)', width: 120, flexShrink: 0 }}>{label}</span>
+            <input type="number" value={values[label] ?? ''} onChange={e => onChange({ ...values, [label]: e.target.value })} placeholder="—" style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border-strong)', fontSize: 15, outline: 'none', background: 'var(--bg-secondary)', boxSizing: 'border-box' }} />
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', width: 30 }}>{unit}</span>
           </div>
         ))}
       </div>
-      <button onClick={onClose} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: '#111827', color: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
+      <button onClick={onClose} style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'var(--text)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>Done</button>
     </div>
   </>);
 }

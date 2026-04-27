@@ -1,11 +1,19 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getItems, deleteItems, type ItemDoc } from '../services/firestoreItems';
+import { getItems, deleteItems, updateItem, type ItemDoc } from '../services/firestoreItems';
 import { DEFAULT_COLOR_PRESETS } from '../utils/colorPresets';
 
 const CATEGORIES = ['Tops', 'Bottoms', 'Shoes', 'Dresses', 'Accessories', 'Sportswear'];
 const mainTabs = ['Pieces', 'Fits', 'Collections'];
+type SortKey = 'newest' | 'oldest' | 'name' | 'most-worn' | 'least-worn';
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'newest', label: 'Newest first' },
+  { key: 'oldest', label: 'Oldest first' },
+  { key: 'name', label: 'Name A–Z' },
+  { key: 'most-worn', label: 'Most worn' },
+  { key: 'least-worn', label: 'Least worn' },
+];
 
 export default function WardrobePage() {
   const navigate = useNavigate();
@@ -21,6 +29,11 @@ export default function WardrobePage() {
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('newest');
+  const [sortSheetOpen, setSortSheetOpen] = useState(false);
+  const [bulkCategorySheet, setBulkCategorySheet] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const exitSelectMode = useCallback(() => {
@@ -66,6 +79,15 @@ export default function WardrobePage() {
     setDeleting(false);
   }
 
+  async function bulkChangeCategory(cat: string) {
+    if (!user || selected.size === 0) return;
+    const ids = Array.from(selected);
+    await Promise.all(ids.map(id => updateItem(user.uid, id, { categoryId: cat })));
+    setItems(prev => prev.map(i => ids.includes(i.id!) ? { ...i, categoryId: cat } : i));
+    setBulkCategorySheet(false);
+    exitSelectMode();
+  }
+
   function selectAll() {
     setSelected(new Set(filteredItems.map(i => i.id!)));
   }
@@ -93,6 +115,26 @@ export default function WardrobePage() {
     if (activeFilter === 'Favorites') result = result.filter(i => i.isFavorite);
     if (selectedColor) result = result.filter(i => i.colors.some(c => c.toLowerCase() === selectedColor.toLowerCase()));
     if (selectedCategory) result = result.filter(i => i.categoryId === selectedCategory);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(i =>
+        (i.name ?? '').toLowerCase().includes(q) ||
+        (i.brand ?? '').toLowerCase().includes(q) ||
+        (i.notes ?? '').toLowerCase().includes(q) ||
+        (i.categoryId ?? '').toLowerCase().includes(q) ||
+        (i.tags ?? []).some(t => t.toLowerCase().includes(q))
+      );
+    }
+    // Sort
+    result = [...result].sort((a, b) => {
+      switch (sortKey) {
+        case 'oldest': return ((a.createdAt as { seconds?: number })?.seconds ?? 0) - ((b.createdAt as { seconds?: number })?.seconds ?? 0);
+        case 'name': return (a.name ?? '').localeCompare(b.name ?? '');
+        case 'most-worn': return (b.usageCount ?? 0) - (a.usageCount ?? 0);
+        case 'least-worn': return (a.usageCount ?? 0) - (b.usageCount ?? 0);
+        default: return ((b.createdAt as { seconds?: number })?.seconds ?? 0) - ((a.createdAt as { seconds?: number })?.seconds ?? 0);
+      }
+    });
     return result;
   })();
 
@@ -113,20 +155,24 @@ export default function WardrobePage() {
   const availableCategories = CATEGORIES.filter(c => catCounts[c]).map(c => ({ name: c, count: catCounts[c] }));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: 80 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: 80, background: 'var(--bg)' }}>
 
       {/* Header */}
       {selectMode ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
-          <button onClick={exitSelectMode} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 14 }}>Cancel</button>
-          <p style={{ margin: 0, fontWeight: 600, fontSize: 16 }}>{selected.size} selected</p>
-          <button onClick={selectAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontSize: 14, fontWeight: 600 }}>All</button>
+          <button onClick={exitSelectMode} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: 14 }}>Cancel</button>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: 'var(--text)' }}>{selected.size} selected</p>
+          <button onClick={selectAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>All</button>
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px' }}>
-          <div style={{ width: 32 }} />
-          <p style={{ margin: 0, fontWeight: 600, fontSize: 16 }}>Wardrobe</p>
-          <button onClick={() => navigate('/settings')} style={{ padding: 4, color: '#4b5563', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => setSearchOpen(!searchOpen)} style={{ padding: 4, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} style={{ width: 22, height: 22 }}>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: 'var(--text)' }}>Wardrobe</p>
+          <button onClick={() => navigate('/settings')} style={{ padding: 4, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} style={{ width: 24, height: 24 }}>
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
@@ -135,10 +181,33 @@ export default function WardrobePage() {
         </div>
       )}
 
+      {/* Search bar */}
+      {searchOpen && !selectMode && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: 'var(--bg-tertiary)', transition: 'background 0.15s' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth={2} style={{ width: 18, height: 18, flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search name, brand, notes, tags…" autoFocus
+              style={{ flex: 1, border: 'none', background: 'none', fontSize: 14, outline: 'none', color: 'var(--text)', caretColor: 'var(--text)' }} />
+            {searchQuery && (
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>{filteredItems.length}</span>
+            )}
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth={2} style={{ width: 16, height: 16 }}>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Total count */}
       <div style={{ textAlign: 'center', padding: '4px 16px 16px' }}>
-        <p style={{ fontSize: 32, fontWeight: 700, color: '#111827', margin: 0 }}>{items.length}</p>
-        <p style={{ fontSize: 13, color: '#9ca3af', margin: '2px 0 0' }}>pieces</p>
+        <p style={{ fontSize: 32, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{items.length}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>pieces</p>
       </div>
 
       {/* Category cards */}
@@ -156,17 +225,17 @@ export default function WardrobePage() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 16px', marginBottom: 12 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 16px', marginBottom: 12 }}>
         {mainTabs.map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            style={{ flex: 1, paddingBottom: 10, fontSize: 14, fontWeight: activeTab === tab ? 600 : 400, color: activeTab === tab ? '#111827' : '#9ca3af', background: 'none', border: 'none', borderBottom: activeTab === tab ? '2px solid #111827' : '2px solid transparent', cursor: 'pointer' }}>
+            style={{ flex: 1, paddingBottom: 10, fontSize: 14, fontWeight: activeTab === tab ? 600 : 400, color: activeTab === tab ? 'var(--text)' : 'var(--text-tertiary)', background: 'none', border: 'none', borderBottom: activeTab === tab ? '2px solid var(--text)' : '2px solid transparent', cursor: 'pointer', transition: 'color 0.15s' }}>
             {tab}
           </button>
         ))}
       </div>
 
       {activeTab !== 'Pieces' && (
-        <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: '#9ca3af', padding: '64px 0' }}>
+        <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', padding: '64px 0' }}>
           <p style={{ fontSize: 14 }}>{activeTab} coming soon</p>
         </div>
       )}
@@ -192,6 +261,13 @@ export default function WardrobePage() {
               colorDot={selectedColor ?? undefined}
               onClick={() => setColorSheetOpen(true)}
             />
+            {/* Sort */}
+            <FilterChip
+              label={SORT_OPTIONS.find(s => s.key === sortKey)?.label ?? 'Sort'}
+              active={sortKey !== 'newest'}
+              chevron
+              onClick={() => setSortSheetOpen(true)}
+            />
           </div>
 
           {loading && (
@@ -203,7 +279,7 @@ export default function WardrobePage() {
           {!loading && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
               <button onClick={() => navigate('/add')}
-                style={{ aspectRatio: '1', background: '#f9fafb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: '#9ca3af', border: 'none', cursor: 'pointer' }}>
+                style={{ aspectRatio: '1', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--text-tertiary)', border: 'none', cursor: 'pointer' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ width: 32, height: 32 }}>
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -241,7 +317,7 @@ export default function WardrobePage() {
           )}
 
           {!loading && filteredItems.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px', color: '#9ca3af' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px', color: 'var(--text-tertiary)' }}>
               <p style={{ fontSize: 14, margin: '0 0 8px' }}>No pieces yet</p>
               <p style={{ fontSize: 13, margin: 0 }}>Tap + to add your first item</p>
             </div>
@@ -249,13 +325,20 @@ export default function WardrobePage() {
         </>
       )}
 
-      {/* Delete bar */}
+      {/* Select mode action bar */}
       {selectMode && selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 72, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, padding: '12px 16px', display: 'flex', justifyContent: 'center', zIndex: 50 }}>
+        <div style={{ position: 'fixed', bottom: 72, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, padding: '12px 16px', display: 'flex', justifyContent: 'center', gap: 10, zIndex: 50 }}>
+          <button onClick={() => setBulkCategorySheet(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 20px', borderRadius: 999, border: 'none', background: '#111827', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 16, height: 16 }}>
+              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Category
+          </button>
           <button onClick={handleDelete} disabled={deleting}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 999, border: 'none', background: '#ef4444', color: 'white', fontSize: 15, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, boxShadow: '0 4px 14px rgba(239,68,68,0.4)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
-              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 20px', borderRadius: 999, border: 'none', background: '#ef4444', color: 'white', fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, boxShadow: '0 4px 14px rgba(239,68,68,0.4)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" />
             </svg>
             {deleting ? 'Deleting…' : `Delete${selected.size > 1 ? ` (${selected.size})` : ''}`}
           </button>
@@ -307,6 +390,46 @@ export default function WardrobePage() {
           })}
         </ExpandableSheet>
       )}
+      {/* Sort sheet */}
+      {sortSheetOpen && (
+        <>
+          <div onClick={() => setSortSheetOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
+          <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
+            <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
+            <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px', color: 'var(--text)' }}>Sort by</p>
+            {SORT_OPTIONS.map(opt => (
+              <button key={opt.key} onClick={() => { setSortKey(opt.key); setSortSheetOpen(false); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 0', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ flex: 1, fontSize: 14, color: 'var(--text)', fontWeight: sortKey === opt.key ? 600 : 400 }}>{opt.label}</span>
+                {sortKey === opt.key && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--text)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Bulk category change sheet */}
+      {bulkCategorySheet && (
+        <>
+          <div onClick={() => setBulkCategorySheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} />
+          <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0', zIndex: 110, padding: '20px 16px 36px' }}>
+            <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 16px' }} />
+            <p style={{ fontSize: 15, fontWeight: 600, margin: '0 0 14px', color: 'var(--text)' }}>Move {selected.size} item{selected.size > 1 ? 's' : ''} to…</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => bulkChangeCategory(cat)}
+                  style={{ padding: '8px 16px', borderRadius: 999, fontSize: 14, fontWeight: 500, cursor: 'pointer', border: '1px solid var(--border-strong)', background: 'var(--bg)', color: 'var(--text)' }}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -319,8 +442,8 @@ function FilterChip({ label, active, chevron, colorDot, onClick }: {
 }) {
   return (
     <button onClick={onClick}
-      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', cursor: 'pointer', border: active ? '1px solid #111827' : '1px solid #e5e7eb', background: active ? '#111827' : 'white', color: active ? 'white' : '#374151' }}>
-      {colorDot && <div style={{ width: 14, height: 14, borderRadius: '50%', background: colorDot, border: colorDot.toLowerCase() === '#ffffff' ? '1px solid #d1d5db' : 'none', flexShrink: 0 }} />}
+      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', cursor: 'pointer', border: active ? '1px solid var(--text)' : '1px solid var(--border-strong)', background: active ? 'var(--text)' : 'var(--bg)', color: active ? 'var(--bg)' : 'var(--text)', transition: 'all 0.15s' }}>
+      {colorDot && <div style={{ width: 14, height: 14, borderRadius: '50%', background: colorDot, border: colorDot.toLowerCase() === '#ffffff' ? '1px solid var(--border-strong)' : 'none', flexShrink: 0 }} />}
       {label}
       {chevron && (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
@@ -336,9 +459,9 @@ function SheetRow({ onClick, left, label, labelBold, right }: {
 }) {
   return (
     <button onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 0', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', textAlign: 'left' }}>
+      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 0', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', transition: 'opacity 0.1s' }}>
       {left}
-      <span style={{ fontSize: 14, color: '#111827', fontWeight: labelBold ? 600 : 500, flex: 1 }}>{label}</span>
+      <span style={{ fontSize: 14, color: 'var(--text)', fontWeight: labelBold ? 600 : 500, flex: 1 }}>{label}</span>
       {right}
     </button>
   );
@@ -436,19 +559,19 @@ function ExpandableSheet({ title, onClose, children }: {
         onWheel={onWheel}
         style={{
           position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-          width: '100%', maxWidth: 480, background: 'white', borderRadius: '20px 20px 0 0',
+          width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '20px 20px 0 0',
           zIndex: 110, height, display: 'flex', flexDirection: 'column',
           transition: snapping ? 'height 0.3s ease' : 'none',
         }}
       >
         {/* Handle (mouse-draggable) */}
         <div onMouseDown={onHandleMouseDown} style={{ padding: '12px 16px 0', flexShrink: 0, cursor: 'grab' }}>
-          <div style={{ width: 36, height: 4, background: '#e5e7eb', borderRadius: 2, margin: '0 auto 14px' }} />
+          <div style={{ width: 36, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 14px' }} />
         </div>
 
         {/* Sticky title */}
         <div style={{ padding: '0 16px 12px', flexShrink: 0 }}>
-          <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{title}</p>
+          <p style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>{title}</p>
         </div>
 
         {/* Scrollable content */}

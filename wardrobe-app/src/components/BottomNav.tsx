@@ -34,13 +34,13 @@ export default function BottomNav() {
       transform: 'translateX(-50%)',
       width: '100%',
       maxWidth: 480,
-      background: 'white',
-      borderTop: '1px solid #f3f4f6',
+      background: 'var(--bg)',
+      borderTop: '1px solid var(--border)',
       zIndex: 50,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '12px 32px 20px' }}>
         {tabs.map((tab) => {
-          const active = location.pathname === tab.path;
+          const active = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
           return (
             <button
               key={tab.path}
@@ -54,7 +54,8 @@ export default function BottomNav() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: active ? '#111827' : '#9ca3af',
+                color: active ? 'var(--text)' : 'var(--text-tertiary)',
+                transition: 'color 0.15s',
               }}
             >
               {tab.icon}
@@ -63,7 +64,6 @@ export default function BottomNav() {
           );
         })}
 
-        {/* Add button inline with white ring */}
         <button
           onClick={() => navigate('/add')}
           aria-label="Add item"
@@ -72,14 +72,15 @@ export default function BottomNav() {
           <div style={{
             width: 52,
             height: 52,
-            background: '#111827',
+            background: 'var(--text)',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 0 4px white, 0 0 0 5px #e5e7eb',
+            boxShadow: '0 0 0 4px var(--bg), 0 0 0 5px var(--border-strong)',
+            transition: 'transform 0.15s',
           }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} style={{ width: 24, height: 24 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth={2.5} style={{ width: 24, height: 24 }}>
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
