@@ -26,6 +26,7 @@ export default function AddItemPage() {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [bgRemoving, setBgRemoving] = useState(false);
   const [bgFailed, setBgFailed] = useState(false);
+  const [bgError, setBgError] = useState('');
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -53,20 +54,21 @@ export default function AddItemPage() {
     setProcessedFile(null);
     setProcessedUrl(null);
     setBgFailed(false);
+    setBgError('');
     setStep('bg-remove');
     setBgRemoving(true);
 
     // Start background removal
     removeBackground(file).then(result => {
       setBgRemoving(false);
-      if (result) {
+      if ('file' in result) {
         setProcessedFile(result.file);
         setProcessedUrl(result.url);
-        // Default to processed version
         setPhotoFile(result.file);
         setPhotoUrl(result.url);
       } else {
         setBgFailed(true);
+        setBgError(result.error);
       }
     });
   }
@@ -167,9 +169,14 @@ export default function AddItemPage() {
           ) : bgFailed ? (
             <>
               <img src={originalUrl!} alt="original" style={{ width: '100%', maxWidth: 300, borderRadius: 16, display: 'block' }} />
-              <p style={{ fontSize: 14, color: 'var(--text-tertiary)', textAlign: 'center', margin: 0 }}>
-                Background removal unavailable. Using original photo.
-              </p>
+              <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                <p style={{ fontSize: 14, color: 'var(--text-tertiary)', margin: '0 0 6px' }}>
+                  Background removal failed
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, opacity: 0.7 }}>
+                  {bgError}
+                </p>
+              </div>
             </>
           ) : (
             <>

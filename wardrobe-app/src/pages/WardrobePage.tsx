@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getItems, deleteItems, updateItem, type ItemDoc } from '../services/firestoreItems';
+import { useWardrobe } from '../contexts/WardrobeContext';
+import { deleteItems, updateItem, type ItemDoc } from '../services/firestoreItems';
+import { deleteFit } from '../services/firestoreFits';
 import { DEFAULT_COLOR_PRESETS } from '../utils/colorPresets';
 
-const CATEGORIES = ['Tops', 'Bottoms', 'Shoes', 'Dresses', 'Accessories', 'Sportswear'];
+const CATEGORIES = ['Tops', 'Bottoms', 'Footwear', 'Dresses', 'Headwear', 'Accessories', 'Sportswear'];
 const mainTabs = ['Pieces', 'Fits', 'Collections'];
 type SortKey = 'newest' | 'oldest' | 'name' | 'most-worn' | 'least-worn';
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -18,10 +20,9 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 export default function WardrobePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { items, fits, loading, removeItemLocal, removeFitLocal, refresh } = useWardrobe();
   const [activeTab, setActiveTab] = useState('Pieces');
   const [activeFilter, setActiveFilter] = useState('All');
-  const [items, setItems] = useState<ItemDoc[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -71,7 +72,7 @@ export default function WardrobePage() {
     setDeleting(true);
     try {
       await deleteItems(user.uid, Array.from(selected));
-      setItems(prev => prev.filter(i => !selected.has(i.id!)));
+      Array.from(selected).forEach(id => removeItemLocal(id));
       exitSelectMode();
     } catch (err) {
       console.error('Delete failed:', err);
@@ -83,7 +84,7 @@ export default function WardrobePage() {
     if (!user || selected.size === 0) return;
     const ids = Array.from(selected);
     await Promise.all(ids.map(id => updateItem(user.uid, id, { categoryId: cat })));
-    setItems(prev => prev.map(i => ids.includes(i.id!) ? { ...i, categoryId: cat } : i));
+    await refresh();
     setBulkCategorySheet(false);
     exitSelectMode();
   }
@@ -92,22 +93,14 @@ export default function WardrobePage() {
     setSelected(new Set(filteredItems.map(i => i.id!)));
   }
 
-  useEffect(() => {
-    if (!user) return;
-    getItems(user.uid).then(data => {
-      setItems(data.filter(i => !i.isDeleted));
-      setLoading(false);
-    });
-  }, [user]);
-
   const catCounts = items.reduce<Record<string, number>>((acc, item) => {
     acc[item.categoryId] = (acc[item.categoryId] ?? 0) + 1;
     return acc;
   }, {});
 
   const catColors: Record<string, string> = {
-    Tops: '#f472b6', Bottoms: '#facc15', Shoes: '#93c5fd',
-    Dresses: '#c084fc', Accessories: '#4ade80', Sportswear: '#fb923c',
+    Tops: '#f472b6', Bottoms: '#facc15', Footwear: '#93c5fd', Shoes: '#93c5fd',
+    Dresses: '#c084fc', Headwear: '#f59e0b', Accessories: '#4ade80', Sportswear: '#fb923c',
   };
 
   const filteredItems = (() => {
@@ -172,12 +165,7 @@ export default function WardrobePage() {
             </svg>
           </button>
           <p style={{ margin: 0, fontWeight: 600, fontSize: 16, color: 'var(--text)' }}>Wardrobe</p>
-          <button onClick={() => navigate('/settings')} style={{ padding: 4, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} style={{ width: 24, height: 24 }}>
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
+          <div style={{ width: 32 }} />
         </div>
       )}
 
@@ -218,7 +206,7 @@ export default function WardrobePage() {
               <div style={{ background: catColors[cat] ?? '#d1d5db', width: 56, height: 56, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ color: 'white', fontSize: 20, fontWeight: 700 }}>{count}</span>
               </div>
-              <p style={{ fontSize: 11, color: '#4b5563', margin: 0 }}>{cat}</p>
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0 }}>{cat}</p>
             </div>
           ))}
         </div>
@@ -234,9 +222,60 @@ export default function WardrobePage() {
         ))}
       </div>
 
-      {activeTab !== 'Pieces' && (
+      {activeTab === 'Collections' && (
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', padding: '64px 0' }}>
-          <p style={{ fontSize: 14 }}>{activeTab} coming soon</p>
+          <p style={{ fontSize: 14 }}>Collections coming soon</p>
+        </div>
+      )}
+
+      {activeTab === 'Fits' && (
+        <div style={{ padding: '0 16px' }}>
+          <button onClick={() => navigate('/create-fit')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px 0', borderRadius: 14, border: '1.5px dashed var(--border-strong)', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, marginBottom: 16 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 18, height: 18 }}>
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create new fit
+          </button>
+          {fits.length === 0 && !loading && (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-tertiary)' }}>
+              <p style={{ fontSize: 14, margin: '0 0 4px' }}>No fits yet</p>
+              <p style={{ fontSize: 13, margin: 0 }}>Combine your pieces into outfits</p>
+            </div>
+          )}
+          {fits.map(fit => {
+            const fitItems = [fit.headwear, fit.top, fit.outer, fit.bottom, fit.shoes, ...(fit.accessories ?? [])]
+              .filter(Boolean)
+              .map(id => items.find(i => i.id === id))
+              .filter(Boolean) as ItemDoc[];
+            return (
+              <div key={fit.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                onClick={() => {}}>
+                {/* Thumbnail stack */}
+                <div style={{ display: 'flex', gap: -8, flexShrink: 0 }}>
+                  {fitItems.slice(0, 4).map((item, i) => (
+                    <img key={item.id} src={item.imageUrl} alt=""
+                      style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', border: '2px solid var(--bg)', marginLeft: i > 0 ? -12 : 0, position: 'relative', zIndex: 4 - i, background: 'var(--bg-secondary)' }} />
+                  ))}
+                  {fitItems.length === 0 && (
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 18, color: 'var(--text-tertiary)' }}>?</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fit.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>{fitItems.length} piece{fitItems.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button onClick={async (e) => { e.stopPropagation(); if (!user || !fit.id) return; await deleteFit(user.uid, fit.id); removeFitLocal(fit.id); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -294,7 +333,7 @@ export default function WardrobePage() {
                     onPointerLeave={handlePointerUp}
                     onContextMenu={e => e.preventDefault()}
                     onClick={() => handleItemTap(item.id!)}
-                    style={{ aspectRatio: '1', overflow: 'hidden', cursor: 'pointer', position: 'relative', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                    style={{ aspectRatio: '1', overflow: 'hidden', cursor: 'pointer', position: 'relative', userSelect: 'none', WebkitUserSelect: 'none', background: 'var(--bg-secondary)' }}>
                     <img src={item.imageUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: isSelected ? 0.6 : 1, transition: 'opacity 0.15s' }} />
                     {selectMode && (
                       <div style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', border: isSelected ? 'none' : '2px solid white', background: isSelected ? '#111827' : 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>

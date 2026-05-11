@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { DEFAULT_COLOR_PRESETS, snapToPreset, type ColorPreset } from '../../utils/colorPresets';
 
-const CATEGORIES = ['Tops', 'Bottoms', 'Shoes', 'Dresses', 'Accessories', 'Sportswear'];
+const CATEGORIES = ['Tops', 'Bottoms', 'Footwear', 'Dresses', 'Headwear', 'Accessories', 'Sportswear'];
 
 declare global {
   interface Window {

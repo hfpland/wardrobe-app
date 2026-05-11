@@ -6,7 +6,7 @@ import { DEFAULT_COLOR_PRESETS } from '../utils/colorPresets';
 import { getWardrobeSetup } from '../services/wardrobeSetup';
 import { uploadItemImage } from '../services/imageUpload';
 
-const CATEGORIES = ['Tops', 'Bottoms', 'Shoes', 'Dresses', 'Accessories', 'Sportswear'];
+const CATEGORIES = ['Tops', 'Bottoms', 'Footwear', 'Dresses', 'Headwear', 'Accessories', 'Sportswear'];
 const BASE_MATERIALS = ['Cotton', 'Denim', 'Linen', 'Silk', 'Wool', 'Polyester', 'Nylon', 'Leather', 'Chambray', 'Fleece', 'Knit'];
 const BASE_LAYERS = ['Inner', 'Outer', 'Both'];
 const CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Worn'];

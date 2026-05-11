@@ -6,7 +6,8 @@ const functions = getFunctions(app, 'us-central1');
 
 const removeBackgroundFn = httpsCallable<{ image: string }, { image: string }>(
   functions,
-  'remove_background'
+  'remove_background',
+  { timeout: 300000 } // 5 minutes — first call downloads the model
 );
 
 /**
@@ -40,19 +41,21 @@ function base64ToFile(b64: string, filename: string): File {
 
 /**
  * Send an image to the Cloud Function for background removal.
- * Returns the processed File and a preview URL, or null if it fails.
+ * Returns the processed File and a preview URL, or an error string if it fails.
  */
 export async function removeBackground(
   file: File
-): Promise<{ file: File; url: string } | null> {
+): Promise<{ file: File; url: string } | { error: string }> {
   try {
     const b64 = await fileToBase64(file);
     const result = await removeBackgroundFn({ image: b64 });
     const processedFile = base64ToFile(result.data.image, 'processed.png');
     const url = URL.createObjectURL(processedFile);
     return { file: processedFile, url };
-  } catch (err) {
-    console.error('Background removal failed:', err);
-    return null;
+  } catch (err: unknown) {
+    const error = err as { code?: string; message?: string; details?: string };
+    const msg = error.message || error.details || error.code || 'Unknown error';
+    console.error('Background removal failed:', { code: error.code, message: error.message, details: error.details });
+    return { error: msg };
   }
 }

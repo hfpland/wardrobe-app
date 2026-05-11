@@ -1,10 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { WardrobeProvider } from './contexts/WardrobeContext';
 import SplashScreen from './components/SplashScreen';
 import BottomNav from './components/BottomNav';
 import WardrobePage from './pages/WardrobePage';
 import DashboardPage from './pages/DashboardPage';
 import AddItemPage from './pages/AddItemPage';
+import CreateFitPage from './pages/CreateFitPage';
+import CalendarPage from './pages/CalendarPage';
 import ItemDetailPage from './pages/ItemDetailPage';
 import WardrobeSetupPage from './pages/WardrobeSetupPage';
 import SettingsPage from './pages/SettingsPage';
@@ -34,6 +37,8 @@ function Layout() {
         <Route path="/wardrobe/:id" element={user ? <ItemDetailPage /> : <Navigate to="/login" replace />} />
         <Route path="/dashboard" element={user ? <DashboardPage /> : <Navigate to="/login" replace />} />
         <Route path="/add" element={user ? <AddItemPage /> : <Navigate to="/login" replace />} />
+        <Route path="/create-fit" element={user ? <CreateFitPage /> : <Navigate to="/login" replace />} />
+        <Route path="/calendar" element={user ? <CalendarPage /> : <Navigate to="/login" replace />} />
         <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" replace />} />
         <Route path="/settings/wardrobe-setup" element={user ? <WardrobeSetupPage /> : <Navigate to="/login" replace />} />
         <Route path="/stylist" element={user ? <DashboardPage /> : <Navigate to="/login" replace />} />
@@ -48,7 +53,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Layout />
+        <WardrobeProvider>
+          <Layout />
+        </WardrobeProvider>
       </AuthProvider>
     </BrowserRouter>
   );
